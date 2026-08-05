@@ -1,0 +1,6 @@
+name = "single0"
+compatibility_date = "2024-09-23"
+
+# 纯静态站：只托管资源，无需 Worker 脚本
+[assets]
+directory = "./public"
