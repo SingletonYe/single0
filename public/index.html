@@ -25,7 +25,11 @@
           <h1 id="name">Singleton YE</h1>
           <p class="location t" data-en="Hangzhou" data-zh="杭州">Hangzhou</p>
           <p class="intro t" data-en="Hackathon Breaker — sharing how to win, for free." data-zh="黑客松破解者，免费分享拿奖的办法。">Hackathon Breaker — sharing how to win, for free.</p>
-          <p class="subintro t" data-en="Follow along for projects, experiments, and things worth sharing." data-zh="关注我的项目、实验，以及一切值得分享的事。">Follow along for projects, experiments, and things worth sharing.</p>
+          <p class="helped">
+            <span class="t" data-en="Already helped" data-zh="已经帮助">Already helped</span>
+            <strong id="helped-count" class="helped-num">…</strong>
+            <span class="t" data-en="people boost their winning odds." data-zh="人提高获奖概率。">people boost their winning odds.</span>
+          </p>
 
           <div class="stats" aria-label="hackathon record">
             <div class="stat"><span class="num">9</span><span class="lbl t" data-en="Done" data-zh="已完赛">Done</span></div>
@@ -226,6 +230,23 @@
         });
         var y = document.getElementById('year');
         if (y) y.textContent = new Date().getFullYear();
+
+        // 访客计数：每个浏览器只 +1（"每有一个人进来加一"），之后只读取展示；防止刷新灌水
+        (function () {
+          var el = document.getElementById('helped-count');
+          if (!el) return;
+          var COUNTED = 'helped_counted';
+          var counted = false;
+          try { counted = localStorage.getItem(COUNTED) === '1'; } catch (e) {}
+          var base = 'https://abacus.jasoncameron.dev/';
+          var url = base + (counted ? 'get' : 'hit') + '/single0-com/visits';
+          fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+            if (d && typeof d.value !== 'undefined') {
+              el.textContent = Number(d.value).toLocaleString('en-US');
+              if (!counted) { try { localStorage.setItem(COUNTED, '1'); } catch (e) {} }
+            } else { el.textContent = '—'; }
+          }).catch(function () { el.textContent = '—'; });
+        })();
 
         // 初始语言：已保存的手动选择 > IP 归属地（中国大陆→中文）> 默认英文
         var saved = null;
