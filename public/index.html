@@ -35,10 +35,11 @@
             <p class="sub-title t" data-en="📮 Get the hackathon newspaper" data-zh="📮 订阅黑客松报纸">📮 Get the hackathon newspaper</p>
             <p class="sub-sub t" data-en="Winning playbooks & event radar — free, every week." data-zh="拿奖打法 + 赛事雷达，每周一封，免费。">Winning playbooks &amp; event radar — free, every week.</p>
             <div class="sub-row">
-              <input class="sub-input" id="sub-email" type="email" autocomplete="email" placeholder="you@email.com" aria-label="Email" required disabled />
-              <button class="sub-btn t" id="sub-btn" type="submit" data-en="Subscribe" data-zh="订阅" disabled>Subscribe</button>
+              <input class="sub-input" id="sub-email" type="email" autocomplete="email" placeholder="you@email.com" aria-label="Email" required />
+              <button class="sub-btn t" id="sub-btn" type="submit" data-en="Subscribe" data-zh="订阅">Subscribe</button>
             </div>
-            <p class="sub-msg sub-soon t" id="sub-msg" role="status" aria-live="polite" data-en="Launching soon 🚀" data-zh="即将开放 🚀">Launching soon 🚀</p>
+            <p class="sub-msg" id="sub-msg" role="status" aria-live="polite"></p>
+            <p class="sub-fine t" data-en="Subscribe to get emails from me. Unsubscribe anytime." data-zh="订阅即表示同意接收我的邮件，可随时退订。">Subscribe to get emails from me. Unsubscribe anytime.</p>
           </form>
 
           <div class="stats" aria-label="hackathon record">
@@ -270,6 +271,44 @@
             if (m && m[1] === 'CN') apply('zh');
           }).catch(function () {});
         }
+      })();
+
+      // ===== newsletter 订阅 → Supabase（前端只用公钥；表已开启 insert-only RLS）=====
+      (function () {
+        var form = document.getElementById('subscribe');
+        if (!form) return;
+        var SB_URL = 'https://bbcbnepgkzsixhajemuc.supabase.co';
+        var SB_KEY = 'sb_publishable_aTgrVQCiJ4WqWCANpZXQiw_-blaYNxA';
+        var input = document.getElementById('sub-email');
+        var btn = document.getElementById('sub-btn');
+        var msg = document.getElementById('sub-msg');
+        var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        var isZh = function () { return document.documentElement.lang === 'zh-CN'; };
+        var t = function (en, zh) { return isZh() ? zh : en; };
+        var say = function (text, cls) { msg.className = 'sub-msg' + (cls ? ' ' + cls : ''); msg.textContent = text; };
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var email = (input.value || '').trim();
+          if (!EMAIL_RE.test(email)) { say(t('Please enter a valid email.', '请输入有效的邮箱。'), 'err'); input.focus(); return; }
+          btn.disabled = true;
+          say(t('Subscribing…', '订阅中…'));
+          fetch(SB_URL + '/rest/v1/subscribers', {
+            method: 'POST',
+            headers: {
+              'apikey': SB_KEY,
+              'Authorization': 'Bearer ' + SB_KEY,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({ email: email, lang: isZh() ? 'zh' : 'en', source: 'single0.com' })
+          }).then(function (r) {
+            if (r.status === 201) { say(t('You’re in! See you in your inbox. 🎉', '订阅成功！很快在邮箱见。🎉'), 'ok'); form.reset(); }
+            else if (r.status === 409) { say(t('You’re already subscribed. 👍', '这个邮箱已经订阅过啦。👍'), 'ok'); }
+            else { throw new Error('status ' + r.status); }
+          }).catch(function () {
+            say(t('Something went wrong — please try again.', '出了点问题，请稍后再试。'), 'err');
+          }).finally(function () { btn.disabled = false; });
+        });
       })();
     </script>
   </body>
